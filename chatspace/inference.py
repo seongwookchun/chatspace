@@ -124,12 +124,12 @@ class ChatSpace:
         generated_sentence = list()
         for i in range(len(text)):
             if space_pred[i] - 1 == 1:
-                generated_sentence.append(text[i] + " ")
+                generated_sentence.append(text[i] + "#")
             else:
                 generated_sentence.append(text[i])
 
         joined_chars = "".join(generated_sentence)
-        return re.sub(r" {2,}", " ", joined_chars).strip()
+        return re.sub(r"#{2,}", "#", joined_chars).strip()
 
     def _get_torch_version(self) -> int:
         """

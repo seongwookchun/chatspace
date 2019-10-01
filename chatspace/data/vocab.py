@@ -17,7 +17,7 @@ limitations under the License.
 from collections import Counter
 from typing import Iterable, List, Optional, Tuple, Union
 
-DEFAULT_FORWARD_SPECIAL_TOKENS = ("[PAD]", "[UNK]", "[SOS]", "[EOS]", " ")
+DEFAULT_FORWARD_SPECIAL_TOKENS = ("[PAD]", "[UNK]", "[SOS]", "[EOS]", "#")
 
 
 class Vocab(dict):
@@ -70,7 +70,7 @@ class Vocab(dict):
         :return: index of the token in vocab
         """
         if token in self:
-            return self[int]
+            return self[token]
 
         token_index = len(self) if index is None else index
 

@@ -1,6 +1,7 @@
 <pad>
 <unk>
 <space>
+#
 .
 이
 어

@@ -84,7 +84,7 @@ class ChatSpaceTrainer:
         collect_fn = (
             ChatSpaceDataset.train_collect_fn if is_train else ChatSpaceDataset.eval_collect_fn
         )
-        data_loader = DataLoader(dataset, batch_size, collate_fn=collect_fn)
+        data_loader = DataLoader(dataset, batch_size, collate_fn=collect_fn, shuffle=True)
         for step_num, batch in enumerate(data_loader):
             batch = {key: value.to(self.device) for key, value in batch.items()}
             output = self.step(step_num, batch)

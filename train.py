@@ -8,7 +8,7 @@ from chatspace.model import ChatSpaceModel
 from chatspace.resource import CONFIG_PATH, JIT_MODEL_PATH, MODEL_DICT_PATH, VOCAB_PATH
 from chatspace.train.trainer import ChatSpaceTrainer
 
-CORPUS_PATH = os.environ["CORPUS_PATH"]
+CORPUS_PATH = "dataset_train.tsv"
 
 with open(CONFIG_PATH) as f:
     config = json.load(f)

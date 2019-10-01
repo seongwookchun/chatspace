@@ -56,21 +56,27 @@ class ChatSpaceDataset(Dataset):
         return model_input
 
     def get_train_input(self, input_text, idx):
-        input_char, label = [], []
-        word_list = input_text.split()
+        input_chars, char_labels = [], []
+        for char_idx, input_char in enumerate(input_text):
+            if char_idx + 1 < len(input_text):
+                next_token = input_text[char_idx+1]
+            else:
+                next_token = "<eos>"
 
-        for word in word_list:
-            word_label = [1] * (len(word) - 1) + [2]
-            char_list = list(word)
+            if input_char == "#":
+                pass
 
-            if random.random() < self.space_prob[idx % len(self.space_prob)]:
-                char_list.append(" ")
-                word_label.append(1)
+            else:
+                if next_token == "#":
+                    char_label = 2
+                    input_chars.append(input_char)
+                    char_labels.append(char_label)
+                else:
+                    char_label = 1
+                    input_chars.append(input_char)
+                    char_labels.append(char_label)
 
-            input_char.extend(char_list)
-            label.extend(word_label)
-
-        return {"input": "".join(input_char), "label": label}
+        return {"input": "".join(input_chars), "label": char_labels}
 
     @staticmethod
     def train_collect_fn(batch):
