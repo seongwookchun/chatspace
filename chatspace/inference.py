@@ -22,6 +22,8 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
+
+from konlpy.tag import Mecab
 from .data import ChatSpaceDataset
 from .data.vocab import Vocab
 from .model import ChatSpaceModel
@@ -60,6 +62,7 @@ class ChatSpace:
         """
 
         batch_texts = [texts] if isinstance(texts, str) else texts
+        # print("batch_texts", batch_texts)
         outputs = [output_text for output_text in self.space_iter(batch_texts, batch_size)]
         return outputs if len(outputs) > 1 else outputs[0]
 
@@ -102,6 +105,7 @@ class ChatSpace:
         :rtype collection.Iterable[str]
         """
         # model forward for chat-space nn.Module
+        # print("Batch Input", batch["input"])
         output = self.model.forward(batch["input"], batch["length"])
 
         # make probability into class index with argmax
@@ -122,14 +126,17 @@ class ChatSpace:
         :return: 띄어쓰기가 반영된 문장
         """
         generated_sentence = list()
-        for i in range(len(text)):
+        tokens = text.split(" ")
+        for i, word in enumerate(tokens):
             if space_pred[i] - 1 == 1:
-                generated_sentence.append(text[i] + "#")
+                generated_sentence.append(word + "#")
             else:
-                generated_sentence.append(text[i])
+                generated_sentence.append(word)
 
-        joined_chars = "".join(generated_sentence)
-        return re.sub(r"#{2,}", "#", joined_chars).strip()
+        joined_chars = " ".join(generated_sentence)
+        result_text = re.sub(r"#{2,}", "#", joined_chars).strip()
+        #print(result_text)
+        return result_text
 
     def _get_torch_version(self) -> int:
         """
@@ -200,10 +207,9 @@ class ChatSpace:
         :param vocab_path: vocab 위치
         :return: 로딩된 vocab
         """
-        with open(vocab_path, encoding="utf-8") as f:
-            vocab_tokens = [line.strip() for line in f]
-        vocab = Vocab(tokens=vocab_tokens)
+        vocab = Vocab.load(vocab_path, with_forward_special_tokens=False)
         self.config["vocab_size"] = len(vocab)
+        self.config["vocab_list"] = list(vocab.keys())
         return vocab
 
     def _load_config(self, config_path: str) -> dict:

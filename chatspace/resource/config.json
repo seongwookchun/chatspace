@@ -1,4 +1,5 @@
 {
+  "word_vec_path":  "/scatter/workspace/generator/embedding/namuwiki_fasttext_300_ws_05_mc_20_neg_10_ns.bin",
   "learning_rate": 0.0005,
   "batch_size": 100,
   "valid_ratio": 0.025,

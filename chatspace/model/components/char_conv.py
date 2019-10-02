@@ -52,4 +52,5 @@ class CharConvolution(nn.Module):
         conv3_paded1 = self.padding_3(conv3_output1)
         conv3_output2 = self.conv3(embed_input)
         conv3_paded2 = self.padding_3(conv3_output2)
+        #return torch.cat((conv3_paded1, conv3_input), dim=1)
         return torch.cat((conv3_paded1, conv3_paded2, conv3_input), dim=1)

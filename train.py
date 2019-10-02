@@ -8,13 +8,17 @@ from chatspace.model import ChatSpaceModel
 from chatspace.resource import CONFIG_PATH, JIT_MODEL_PATH, MODEL_DICT_PATH, VOCAB_PATH
 from chatspace.train.trainer import ChatSpaceTrainer
 
-CORPUS_PATH = "dataset_train.tsv"
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
+CORPUS_PATH = "new_space_dataset_train_new.tsv"
 
 with open(CONFIG_PATH) as f:
     config = json.load(f)
 
-vocab = Vocab.load(VOCAB_PATH, with_forward_special_tokens=True)
+vocab = Vocab.load(VOCAB_PATH, with_forward_special_tokens=False)
 config["vocab_size"] = len(vocab)
+config["vocab_list"] = list(vocab.keys())
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model = ChatSpaceModel(config).to(device)

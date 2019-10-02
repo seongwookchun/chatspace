@@ -15,6 +15,7 @@ limitations under the License.
 """
 
 import random
+from konlpy.tag import Mecab
 from typing import List, Union
 
 import torch
@@ -31,7 +32,7 @@ class ChatSpaceDataset(Dataset):
         config,
         texts: Union[DynamicCorpus, List[str]],
         vocab: Vocab,
-        with_random_space: bool = False,
+        with_random_space: bool = True,
     ):
         self.texts = texts
         self.indexer = Indexer(vocab)
@@ -49,34 +50,42 @@ class ChatSpaceDataset(Dataset):
         else:
             model_input = {"input": list(self.texts[idx])}
 
+        # print("Raw Input", model_input["input"])
+
         model_input["input"] = self.indexer.encode(
             model_input["input"], min_seq_len=self.config["min_seq_len"], unk_word="[UNK]"
         )
+
+        # print("Encoded Input", model_input["input"])
+
         model_input["length"] = len(model_input["input"])
         return model_input
 
     def get_train_input(self, input_text, idx):
-        input_chars, char_labels = [], []
-        for char_idx, input_char in enumerate(input_text):
-            if char_idx + 1 < len(input_text):
-                next_token = input_text[char_idx+1]
-            else:
-                next_token = "<eos>"
+        input_words, word_labels = [], []
+        words = input_text.split(" ")
 
-            if input_char == "#":
+        for word_idx, word in enumerate(words):
+            if word_idx + 1 < len(words):
+                next_token = words[word_idx+1]
+            else:
+                next_token = "[EOS]"
+
+            if word == "#":
                 pass
 
             else:
                 if next_token == "#":
                     char_label = 2
-                    input_chars.append(input_char)
-                    char_labels.append(char_label)
+                    # print(char_label)
                 else:
                     char_label = 1
-                    input_chars.append(input_char)
-                    char_labels.append(char_label)
+                input_words.append(word)
+                word_labels.append(char_label)
 
-        return {"input": "".join(input_chars), "label": char_labels}
+        the_dict = {"input": input_words, "label": word_labels}
+
+        return the_dict
 
     @staticmethod
     def train_collect_fn(batch):
