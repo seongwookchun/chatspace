@@ -73,6 +73,27 @@ Iterative
     # '와 진짜 대박'
     # ...
 
+Advanced (Custom Vocab/Custom Device)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+    from chatspace import ChatSpace
+    import torch
+
+    # 원하는 torch.device 로 chatspace 모델을 옮기고 실행할 수 있음
+    custom_device = torch.device("cuda:0")
+    spacer = ChatSpace(device=custom_device)
+
+    # 띄어쓰기를 원치않는 단어들을 설정할 수 있음
+    texts = ["안녕 만나서반가워 내이름은뽀로로라고해", "와진짜대박", ...]
+    spacer.space(texts, custom_vocab=["내이름", "진짜대박"])
+
+    # '안녕 만나서 반가워 내이름은 뽀로로라고 해'
+    # '와 진짜대박'
+    # ...
+
+
 Authors
 -------
 

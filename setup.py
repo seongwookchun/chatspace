@@ -10,10 +10,8 @@ setup(
     author="Suin Seo, Junseong Kim",
     author_email="developers@scatterlab.co.kr",
     url="https://github.com/pingpong-ai/chatspace",
-    install_requires=[
-        "torch"
-    ],
-    packages=find_packages(exclude=['tests']),
+    install_requires=["torch", "pyahocorasick"],
+    packages=find_packages(exclude=["tests", "*.train"]),
     keywords=["spaceing", "korean", "pingpong"],
     python_requires=">=3.6",
     long_description=long_description,

@@ -16,16 +16,19 @@ limitations under the License.
 
 import json
 import re
-from typing import Dict, Generator, Iterable, List, Union
+from typing import Dict, Generator, Iterable, List, Optional, Union
 
 import torch
 import torch.nn as nn
+from ahocorasick import Automaton
 from torch.utils.data import DataLoader
 
 from .data import ChatSpaceDataset
 from .data.vocab import Vocab
 from .model import ChatSpaceModel
 from .resource import CONFIG_PATH, JIT_MODEL_PATH, MODEL_DICT_PATH, VOCAB_PATH
+
+DEFAULT_DEVICE = torch.device("cpu")
 
 
 class ChatSpace:
@@ -34,12 +37,12 @@ class ChatSpace:
         model_path: str = None,
         config_path: str = CONFIG_PATH,
         vocab_path: str = VOCAB_PATH,
-        device: str = "cpu",
+        device: torch.device = DEFAULT_DEVICE,
         from_jit: bool = True,
     ):
         self.config = self._load_config(config_path)
         self.vocab = self._load_vocab(vocab_path)
-        self.device = torch.device(device)
+        self.device = device
 
         if model_path is None:
             from_jit = self._is_jit_available() if from_jit else False
@@ -48,7 +51,12 @@ class ChatSpace:
         self.model = self._load_model(model_path, self.device, from_jit=from_jit)
         self.model.eval()
 
-    def space(self, texts: Union[List[str], str], batch_size: int = 64) -> Union[List[str], str]:
+    def space(
+        self,
+        texts: Union[List[str], str],
+        batch_size: int = 64,
+        custom_vocab: Optional[List[str]] = None,
+    ) -> Union[List[str], str]:
         """
         띄어쓰기 하려는 문장을 넣으면, 띄어쓰기를 수정한 문장을 만들어 줘요!
         전체 문장에 대한 inference가 끝나야 결과가 return 되기 때문에
@@ -56,14 +64,19 @@ class ChatSpace:
 
         :param texts: 띄어쓰기를 하고자 하는 문장 또는 문장들
         :param batch_size: 기본으로 64가 설정되어 있지만, 원하는 크기로 조정할 수 있음
+        :param custom_vocab: 띄어쓰기가 적용되지 않는 단어들 (강제로 띄어쓰기가 적용되지 않음)
         :return: 띄어쓰기가 완료된 문장 또는 문장들
         """
 
         batch_texts = [texts] if isinstance(texts, str) else texts
-        outputs = [output_text for output_text in self.space_iter(batch_texts, batch_size)]
+        outputs = [
+            output_text for output_text in self.space_iter(batch_texts, batch_size, custom_vocab)
+        ]
         return outputs if len(outputs) > 1 else outputs[0]
 
-    def space_iter(self, texts: List[str], batch_size: int = 64) -> Iterable[str]:
+    def space_iter(
+        self, texts: List[str], batch_size: int = 64, custom_vocab: Optional[List[str]] = None
+    ) -> Iterable[str]:
         """
         띄어쓰기 하려는 문장을 넣으면, 띄어쓰기를 수정한 문장을 iterative 하게 만들어 줘요!
         모든 띄어쓰기가 끝날 때 까지 기다리지 않아도 되니 for 문에서 사용할 수 있어요.
@@ -73,20 +86,27 @@ class ChatSpace:
 
         :param texts: 띄어쓰기를 하고자 하는 문장 또는 문장들
         :param batch_size: 기본으로 64가 설정되어 있지만, 원하는 크기로 조정할 수 있음
+        :param custom_vocab: 띄어쓰기가 적용되지 않는 단어들 (강제로 띄어쓰기가 적용되지 않음)
         :return: 띄어쓰기가 완료된 문장 또는 문장
         :rtype collection.Iterable[str]
         """
 
         dataset = ChatSpaceDataset(self.config, texts, self.vocab)
         data_loader = DataLoader(dataset, batch_size, collate_fn=dataset.eval_collect_fn)
+        keyword_processor = self._get_keyword_processor(custom_vocab) if custom_vocab else None
 
         for i, batch in enumerate(data_loader):
             batch_texts = texts[i * batch_size : i * batch_size + batch_size]
-            for text in self._single_batch_inference(batch=batch, batch_texts=batch_texts):
+            for text in self._single_batch_inference(
+                batch=batch, batch_texts=batch_texts, keyword_processor=keyword_processor
+            ):
                 yield text
 
     def _single_batch_inference(
-        self, batch: Dict[str, torch.Tensor], batch_texts: List[str]
+        self,
+        batch: Dict[str, torch.Tensor],
+        batch_texts: List[str],
+        keyword_processor: Automaton = None,
     ) -> Generator[str, str, None]:
         """
         batch input 을 모델에 넣고, 예측된 띄어쓰기를 원본 텍스트에 반영하여
@@ -98,6 +118,7 @@ class ChatSpace:
             length를 사용하는 이유는 dynamic LSTM을 사용하기 위해서 pack_padded_sequence 를 사용하기 때문임
 
         :param batch_texts: batch 에 들어간 실제 원본 문장들
+        :param keyword_processor: 띄어쓰기를 적용하고 싶지 않은 단어들을 처리하는 모듈
         :return: 띄어쓰기가 완료된 문장
         :rtype collection.Iterable[str]
         """
@@ -108,6 +129,9 @@ class ChatSpace:
         space_preds = output.argmax(dim=-1).cpu().tolist()
 
         for text, space_pred in zip(batch_texts, space_preds):
+            if keyword_processor:
+                space_pred = self._apply_custom_vocab(text, space_pred, keyword_processor)
+
             # yield generated text (spaced text)
             yield self.generate_text(text, space_pred)
 
@@ -121,15 +145,28 @@ class ChatSpace:
         0: PAD_TARGET, 1: NONE_SPACE_TARGET, 2: SPACE_TARGET
         :return: 띄어쓰기가 반영된 문장
         """
-        generated_sentence = list()
-        for i in range(len(text)):
-            if space_pred[i] - 1 == 1:
-                generated_sentence.append(text[i] + " ")
-            else:
-                generated_sentence.append(text[i])
-
+        generated_sentence = [
+            text[i] + (" " if space_pred[i] - 1 == 1 else "") for i in range(len(text))
+        ]
         joined_chars = "".join(generated_sentence)
         return re.sub(r" {2,}", " ", joined_chars).strip()
+
+    def _apply_custom_vocab(self, text, space_pred, keyword_processor):
+        for end_index, (_, original_value) in keyword_processor.iter(text):
+            start_index = end_index - len(original_value) + 1
+            for i in range(start_index, end_index + 1):
+                space_pred[i] = 1
+        return space_pred
+
+    def _get_keyword_processor(self, custom_vocab: List[str]):
+        keyword_processor = Automaton()
+
+        for i, keyword in enumerate(custom_vocab):
+            if len(keyword) > 1:
+                keyword_processor.add_word(keyword, (i, keyword))
+
+        keyword_processor.make_automaton()
+        return keyword_processor
 
     def _get_torch_version(self) -> int:
         """

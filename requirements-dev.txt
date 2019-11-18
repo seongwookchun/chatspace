@@ -1,0 +1,8 @@
+flake8
+flake8-bugbear
+black
+pydocstyle
+isort
+pytest
+pytest-cov
+sklearn

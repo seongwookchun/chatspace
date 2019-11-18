@@ -23,6 +23,11 @@ def test_space(spacer):
     assert spacer.space("만나서반가워!") == "만나서 반가워!"
 
 
+def test_custom_vocab(spacer):
+    assert spacer.space("행신역 앞 피자마루") == "행신역 앞 피자 마루"
+    assert spacer.space("행신역 앞 피자마루", custom_vocab=["피자마루"]) == "행신역 앞 피자마루"
+
+
 def test_time(spacer):
     output, speed = check_speed(spacer, "안녕 내이름은 뽀로로야")
     assert speed < 0.1
