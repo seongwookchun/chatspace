@@ -16,12 +16,13 @@ limitations under the License.
 
 
 class DynamicCorpus:
-    def __init__(self, corpus_path, corpus_size=None, repeat=False):
+    def __init__(self, corpus_path, corpus_size=None, repeat=False, encoding="utf-8"):
         self.corpus_path = corpus_path
         self.corpus_file = self.open()
         self.corpus_size = corpus_size if corpus_size else self._get_corpus_size()
         self.line_pointer = 0
         self.repeat = repeat
+        self.encoding = encoding
 
     def __getitem__(self, item):
         if self.line_pointer >= self.corpus_size:
@@ -45,7 +46,7 @@ class DynamicCorpus:
         return line
 
     def open(self):
-        self.corpus_file = open(self.corpus_path)
+        self.corpus_file = open(self.corpus_path, encoding=self.encoding)
         return self.corpus_file
 
     def reload(self):

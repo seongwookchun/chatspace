@@ -53,8 +53,8 @@ def test_hard(spacer, target_corpus):
     assert metric["f1"] >= 0.93
 
 
-def read_file(path):
-    with open(path) as f:
+def read_file(path, encoding="utf-8"):
+    with open(path, encoding=encoding) as f:
         return [line.strip() for line in f]
 
 

@@ -145,7 +145,9 @@ class Vocab(dict):
         return self.idx_to_token[index]
 
     @staticmethod
-    def load(path: str, with_forward_special_tokens: bool = False) -> "Vocab":
+    def load(
+        path: str, with_forward_special_tokens: bool = False, encoding: str = "utf-8"
+    ) -> "Vocab":
         """
         load vocab file from txt file.
 
@@ -154,10 +156,11 @@ class Vocab(dict):
             if true, the forward special tokens(PAD, EOS ..) will be added
             before txt vocab loading. and txt vocabs will be assigned in
             backward position (e.x apple 4, banana 5 ...)
+        :param encoding: encoding string. default: utf-8
         :return:
         """
 
-        with open(path) as f:
+        with open(path, encoding=encoding) as f:
             tokens = [line.strip() for line in f]
 
         if with_forward_special_tokens:
@@ -169,6 +172,7 @@ class Vocab(dict):
         path: Optional[str] = None,
         with_forward_special_tokens: bool = True,
         with_backward_special_tokens: bool = True,
+        encoding: str = "utf-8",
     ) -> List[str]:
         """
         dump and save vocab into file
@@ -178,6 +182,7 @@ class Vocab(dict):
             if true, dumped tokens include the forward_special_token
         :param with_backward_special_tokens:
             if true, dumped tokens include the backward_special_token
+        :param encoding: encoding string. default: utf-8
         :return: dumped tokens as list of string
         """
         dump_tokens = []
@@ -192,7 +197,7 @@ class Vocab(dict):
             dump_tokens.extend(self.backward_special_tokens)
 
         if path is not None:
-            with open(path, "w") as f:
+            with open(path, "w", encoding=encoding) as f:
                 for token in dump_tokens:
                     f.write(f"{token}\n")
 

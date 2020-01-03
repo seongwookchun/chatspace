@@ -39,9 +39,11 @@ class ChatSpace:
         vocab_path: str = VOCAB_PATH,
         device: torch.device = DEFAULT_DEVICE,
         from_jit: bool = True,
+        encoding: str = "utf-8",
     ):
+        self.encoding = encoding
         self.config = self._load_config(config_path)
-        self.vocab = self._load_vocab(vocab_path)
+        self.vocab = self._load_vocab(vocab_path, encoding=self.encoding)
         self.device = device
 
         if model_path is None:
@@ -230,14 +232,15 @@ class ChatSpace:
         model = torch.jit.load(model_path)
         return model
 
-    def _load_vocab(self, vocab_path: str) -> Vocab:
+    def _load_vocab(self, vocab_path: str, encoding="utf-8") -> Vocab:
         """
         저장된 vocab 을 로딩
 
         :param vocab_path: vocab 위치
+        :param encoding: encoding string. default: utf-8
         :return: 로딩된 vocab
         """
-        with open(vocab_path, encoding="utf-8") as f:
+        with open(vocab_path, encoding=encoding) as f:
             vocab_tokens = [line.strip() for line in f]
         vocab = Vocab(tokens=vocab_tokens)
         self.config["vocab_size"] = len(vocab)

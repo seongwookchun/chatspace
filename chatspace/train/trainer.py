@@ -35,6 +35,7 @@ class ChatSpaceTrainer:
         device: torch.device,
         train_corpus_path,
         eval_corpus_path=None,
+        encoding="utf-8",
     ):
         self.config = config
         self.device = device
@@ -42,14 +43,15 @@ class ChatSpaceTrainer:
         self.optimizer = Adam(self.model.parameters(), lr=config["learning_rate"])
         self.criterion = nn.NLLLoss()
         self.vocab = vocab
+        self.encoding = encoding
 
-        self.train_corpus = DynamicCorpus(train_corpus_path, repeat=True)
+        self.train_corpus = DynamicCorpus(train_corpus_path, repeat=True, encoding=self.encoding)
         self.train_dataset = ChatSpaceDataset(
             config, self.train_corpus, self.vocab, with_random_space=True
         )
 
         if eval_corpus_path is not None:
-            self.eval_corpus = DynamicCorpus(eval_corpus_path)
+            self.eval_corpus = DynamicCorpus(eval_corpus_path, encoding=self.encoding)
             self.eval_dataset = ChatSpaceDataset(
                 self.config, eval_corpus_path, self.vocab, with_random_space=True
             )

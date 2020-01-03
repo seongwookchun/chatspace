@@ -8,7 +8,7 @@ from chatspace import ChatSpace
 
 @pytest.fixture()
 def spacer():
-    return ChatSpace(from_jit=False)
+    return ChatSpace(from_jit=False, encoding="utf-8")
 
 
 @pytest.fixture()

@@ -7,7 +7,7 @@ from chatspace import ChatSpace
 
 @pytest.fixture()
 def spacer():
-    return ChatSpace()
+    return ChatSpace(encoding="utf-8")
 
 
 def check_speed(spacer, text):
