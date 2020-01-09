@@ -17,5 +17,5 @@ limitations under the License.
 from .inference import ChatSpace
 
 __all__ = ["ChatSpace"]
-__version__ = "1.0"
-__author__ = "Suin Seo, Junseong Kim"
+__version__ = "1.0.2"
+__author__ = "ScatterLab"

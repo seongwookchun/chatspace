@@ -53,8 +53,8 @@ def test_hard(spacer, target_corpus):
     assert metric["f1"] >= 0.93
 
 
-def read_file(path, encoding="utf-8"):
-    with open(path, encoding=encoding) as f:
+def read_file(path):
+    with open(path, encoding="utf-8") as f:
         return [line.strip() for line in f]
 
 
@@ -91,8 +91,7 @@ def get_metric(input_corpus, target_corpus, eval_type="easy"):
     print(
         f"eval_code:{eval_type}",
         f"accuracy\t{accuracy}\n",
-        f"precision\t{precision}\n"
-        f"recall\t{recall}\n",
+        f"precision\t{precision}\n" f"recall\t{recall}\n",
         f"f1 score\t{f1score}\n",
     )
     return {"acc": accuracy, "precision": precision, "recall": recall, "f1": f1score}

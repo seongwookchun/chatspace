@@ -1,13 +1,17 @@
 import time
 
 import pytest
+import torch
 
 from chatspace import ChatSpace
 
+cuda_param = "cuda" if torch.cuda.is_available() else pytest.param("cuda", marks=pytest.mark.skip)
 
-@pytest.fixture()
-def spacer():
-    return ChatSpace(encoding="utf-8")
+
+@pytest.fixture(params=["cpu", cuda_param])
+def spacer(request):
+    device = torch.device(request.param)
+    return ChatSpace(device=device)
 
 
 def check_speed(spacer, text):

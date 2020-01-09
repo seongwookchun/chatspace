@@ -15,6 +15,7 @@ limitations under the License.
 """
 
 import json
+import logging
 import re
 from typing import Dict, Generator, Iterable, List, Optional, Union
 
@@ -47,7 +48,9 @@ class ChatSpace:
         self.device = device
 
         if model_path is None:
-            from_jit = self._is_jit_available() if from_jit else False
+            from_jit = (
+                self._is_jit_available() if from_jit and self.device.type != "cuda" else False
+            )
             model_path = JIT_MODEL_PATH if from_jit else MODEL_DICT_PATH
 
         self.model = self._load_model(model_path, self.device, from_jit=from_jit)
@@ -125,6 +128,9 @@ class ChatSpace:
         :rtype collection.Iterable[str]
         """
         # model forward for chat-space nn.Module
+        if self.device.type == "cuda":
+            batch = {key: value.to(self.device) for key, value in batch.items()}
+
         output = self.model.forward(batch["input"], batch["length"])
 
         # make probability into class index with argmax
@@ -201,7 +207,9 @@ class ChatSpace:
             try:
                 model = self._load_model_from_jit(model_path)
             except RuntimeError:
-                print("Failed to load jit compiled model. Please set ChatSpace(as_jit=False)")
+                logging.warning(
+                    "Failed to load jit compiled model. Please set ChatSpace(as_jit=False)"
+                )
                 model = self._load_model_from_dict(model_path, device)
         else:
             model = self._load_model_from_dict(model_path, device)
@@ -215,7 +223,7 @@ class ChatSpace:
         :param device: 어떤 device 에 모델 weight 를 바로 위치시킬 지
         :return: weight 가 로딩된 ChatSpace 모델 (nn.Module)
         """
-        print("Loading ChatSpace Model Weight")
+        logging.debug("Loading ChatSpace Model Weight")
         model = ChatSpaceModel(self.config)
         state_dict = torch.load(model_path, map_location=device)
         model.load_state_dict(state_dict, strict=False)
@@ -228,7 +236,7 @@ class ChatSpace:
         :param model_path: 모델 파일 위치
         :return: jit traced ScriptModule
         """
-        print("Loading JIT Compiled ChatSpace Model")
+        logging.debug("Loading JIT Compiled ChatSpace Model")
         model = torch.jit.load(model_path)
         return model
 
@@ -246,12 +254,13 @@ class ChatSpace:
         self.config["vocab_size"] = len(vocab)
         return vocab
 
-    def _load_config(self, config_path: str) -> dict:
+    def _load_config(self, config_path: str, encoding="utf-8") -> dict:
         """
         저장된 config 을 로딩
 
         :param config_path: config 위치
+        :param encoding: config 파일을 읽을 때 사용할 encoding 옵션, default: utf-8
         :return: 로딩된 config
         """
-        with open(config_path) as f:
+        with open(config_path, encoding=encoding) as f:
             return json.load(f)
